@@ -44,11 +44,9 @@ final class CampaignService {
 			return $validation;
 		}
 
-		$id = (int) ( $data['id'] ?? 0 );
+		if ( ! empty( $data['id'] ) ) {
 
-		if ( $id > 0 ) {
-
-			if ( ! $this->repository->update( $id, $data ) ) {
+			if ( ! $this->repository->update( (int) $data['id'], $data ) ) {
 
 				return array(
 					'success' => false,
@@ -59,7 +57,7 @@ final class CampaignService {
 
 			return array(
 				'success' => true,
-				'id'      => $id,
+				'id'      => (int) $data['id'],
 				'message' => __( 'Campaign updated.', 'hsg-campaign-manager' ),
 			);
 
@@ -120,7 +118,7 @@ final class CampaignService {
 
 		$new_id = $this->repository->duplicate( $id );
 
-		if ( ! $new_id ) {
+		if ( ! $new_id || is_wp_error( $new_id ) ) {
 
 			return array(
 				'success' => false,
@@ -131,14 +129,14 @@ final class CampaignService {
 
 		return array(
 			'success' => true,
-			'id'      => $new_id,
+			'id'      => (int) $new_id,
 			'message' => __( 'Campaign duplicated.', 'hsg-campaign-manager' ),
 		);
 
 	}
 
 	/**
-	 * Sanitize input.
+	 * Sanitize campaign data.
 	 *
 	 * @param array $data Raw data.
 	 *
@@ -146,18 +144,30 @@ final class CampaignService {
 	 */
 	private function sanitize( array $data ): array {
 
+		$products = array_map(
+			'absint',
+			(array) ( $data['products'] ?? array() )
+		);
+
+		$products = array_values(
+			array_unique(
+				array_filter( $products )
+			)
+		);
+
 		return array(
-			'id'     => absint( $data['id'] ?? 0 ),
-			'title'  => sanitize_text_field( $data['title'] ?? '' ),
-			'status' => in_array(
+			'id'       => absint( $data['id'] ?? 0 ),
+			'title'    => sanitize_text_field( $data['title'] ?? '' ),
+			'status'   => in_array(
 				$data['status'] ?? 'draft',
 				array( 'draft', 'publish' ),
 				true
 			) ? $data['status'] : 'draft',
-			'coupon' => sanitize_text_field( $data['coupon'] ?? '' ),
-			'price'  => wc_format_decimal( $data['price'] ?? '' ),
-			'start'  => sanitize_text_field( $data['start'] ?? '' ),
-			'end'    => sanitize_text_field( $data['end'] ?? '' ),
+			'coupon'   => sanitize_text_field( $data['coupon'] ?? '' ),
+			'price'    => wc_format_decimal( $data['price'] ?? '' ),
+			'start'    => sanitize_text_field( $data['start'] ?? '' ),
+			'end'      => sanitize_text_field( $data['end'] ?? '' ),
+			'products' => $products,
 		);
 
 	}
@@ -190,6 +200,23 @@ final class CampaignService {
 				'success' => false,
 				'message' => __( 'Start date must be before end date.', 'hsg-campaign-manager' ),
 			);
+
+		}
+
+		foreach ( $data['products'] as $product_id ) {
+
+			if ( 'product' !== get_post_type( $product_id ) ) {
+
+				return array(
+					'success' => false,
+					'message' => sprintf(
+						/* translators: %d Product ID */
+						__( 'Product ID %d is invalid.', 'hsg-campaign-manager' ),
+						$product_id
+					),
+				);
+
+			}
 
 		}
 
