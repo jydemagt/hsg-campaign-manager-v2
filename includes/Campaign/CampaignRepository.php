@@ -13,15 +13,11 @@ final class CampaignRepository {
 
 	/**
 	 * Campaign post type.
-	 *
-	 * @var string
 	 */
 	private const POST_TYPE = 'hsg_campaign';
 
 	/**
-	 * Return all campaigns.
-	 *
-	 * @return array
+	 * Get all campaigns.
 	 */
 	public function all(): array {
 
@@ -39,20 +35,12 @@ final class CampaignRepository {
 
 	/**
 	 * Find campaign.
-	 *
-	 * @param int $id Campaign ID.
-	 *
-	 * @return \WP_Post|null
 	 */
 	public function find( int $id ): ?\WP_Post {
 
 		$post = get_post( $id );
 
-		if ( ! $post ) {
-			return null;
-		}
-
-		if ( self::POST_TYPE !== $post->post_type ) {
+		if ( ! $post || self::POST_TYPE !== $post->post_type ) {
 			return null;
 		}
 
@@ -62,8 +50,6 @@ final class CampaignRepository {
 
 	/**
 	 * Count campaigns.
-	 *
-	 * @return int
 	 */
 	public function count(): int {
 
@@ -75,10 +61,6 @@ final class CampaignRepository {
 
 	/**
 	 * Create campaign.
-	 *
-	 * @param array $data Campaign data.
-	 *
-	 * @return int|\WP_Error
 	 */
 	public function create( array $data ) {
 
@@ -103,11 +85,6 @@ final class CampaignRepository {
 
 	/**
 	 * Update campaign.
-	 *
-	 * @param int   $id Campaign ID.
-	 * @param array $data Campaign data.
-	 *
-	 * @return bool
 	 */
 	public function update( int $id, array $data ): bool {
 
@@ -132,10 +109,6 @@ final class CampaignRepository {
 
 	/**
 	 * Delete campaign.
-	 *
-	 * @param int $id Campaign ID.
-	 *
-	 * @return bool
 	 */
 	public function delete( int $id ): bool {
 
@@ -145,10 +118,6 @@ final class CampaignRepository {
 
 	/**
 	 * Duplicate campaign.
-	 *
-	 * @param int $id Campaign ID.
-	 *
-	 * @return int|false
 	 */
 	public function duplicate( int $id ) {
 
@@ -158,51 +127,86 @@ final class CampaignRepository {
 			return false;
 		}
 
-		$data = array(
-			'title'  => $post->post_title . ' (Copy)',
-			'status' => 'draft',
-			'coupon' => get_post_meta( $id, '_hsgcm_coupon', true ),
-			'price'  => get_post_meta( $id, '_hsgcm_price', true ),
-			'start'  => get_post_meta( $id, '_hsgcm_start_date', true ),
-			'end'    => get_post_meta( $id, '_hsgcm_end_date', true ),
-		);
+		$data = $this->get_campaign_data( $id );
 
-		$new_id = $this->create( $data );
+		$data['title']  = $post->post_title . ' (Copy)';
+		$data['status'] = 'draft';
 
-		if ( is_wp_error( $new_id ) ) {
-			return false;
+		return $this->create( $data );
+
+	}
+
+	/**
+	 * Return campaign as array.
+	 */
+	public function get_campaign_data( int $id ): array {
+
+		$post = $this->find( $id );
+
+		if ( ! $post ) {
+			return array();
 		}
 
-		return (int) $new_id;
+		return array(
+			'id'       => $post->ID,
+			'title'    => $post->post_title,
+			'status'   => $post->post_status,
+			'coupon'   => get_post_meta( $id, '_hsgcm_coupon', true ),
+			'price'    => get_post_meta( $id, '_hsgcm_price', true ),
+			'start'    => get_post_meta( $id, '_hsgcm_start_date', true ),
+			'end'      => get_post_meta( $id, '_hsgcm_end_date', true ),
+			'products' => (array) get_post_meta(
+				$id,
+				'_hsgcm_products',
+				true
+			),
+		);
 
 	}
 
 	/**
 	 * Save campaign meta.
-	 *
-	 * @param int   $post_id Campaign ID.
-	 * @param array $data Campaign data.
-	 *
-	 * @return void
 	 */
 	private function save_meta( int $post_id, array $data ): void {
 
-		$meta = array(
-			'_hsgcm_coupon'    => sanitize_text_field( $data['coupon'] ?? '' ),
-			'_hsgcm_price'     => wc_format_decimal( $data['price'] ?? '' ),
-			'_hsgcm_start_date'=> sanitize_text_field( $data['start'] ?? '' ),
-			'_hsgcm_end_date'  => sanitize_text_field( $data['end'] ?? '' ),
+		update_post_meta(
+			$post_id,
+			'_hsgcm_coupon',
+			sanitize_text_field( $data['coupon'] ?? '' )
 		);
 
-		foreach ( $meta as $key => $value ) {
+		update_post_meta(
+			$post_id,
+			'_hsgcm_price',
+			wc_format_decimal( $data['price'] ?? '' )
+		);
 
-			update_post_meta(
-				$post_id,
-				$key,
-				$value
-			);
+		update_post_meta(
+			$post_id,
+			'_hsgcm_start_date',
+			sanitize_text_field( $data['start'] ?? '' )
+		);
 
-		}
+		update_post_meta(
+			$post_id,
+			'_hsgcm_end_date',
+			sanitize_text_field( $data['end'] ?? '' )
+		);
+
+		/*
+		 * Products
+		 */
+
+		$products = array_map(
+			'absint',
+			(array) ( $data['products'] ?? array() )
+		);
+
+		update_post_meta(
+			$post_id,
+			'_hsgcm_products',
+			$products
+		);
 
 	}
 
