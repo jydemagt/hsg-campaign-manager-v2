@@ -15,14 +15,14 @@ defined( 'ABSPATH' ) || exit;
 final class AjaxController {
 
 	/**
-	 * Campaign repository.
+	 * Repository.
 	 *
 	 * @var CampaignRepository
 	 */
 	private CampaignRepository $repository;
 
 	/**
-	 * Campaign service.
+	 * Service.
 	 *
 	 * @var CampaignService
 	 */
@@ -44,7 +44,7 @@ final class AjaxController {
 	}
 
 	/**
-	 * Verify AJAX request.
+	 * Verify request.
 	 *
 	 * @return void
 	 */
@@ -76,9 +76,9 @@ final class AjaxController {
 
 		$id = absint( $_POST['id'] ?? 0 );
 
-		$campaign = $this->repository->find( $id );
+		$data = $this->repository->get_campaign_data( $id );
 
-		if ( ! $campaign ) {
+		if ( empty( $data ) ) {
 
 			wp_send_json_error(
 				array(
@@ -88,17 +88,7 @@ final class AjaxController {
 
 		}
 
-		wp_send_json_success(
-			array(
-				'id'     => $campaign->ID,
-				'title'  => $campaign->post_title,
-				'status' => $campaign->post_status,
-				'coupon' => get_post_meta( $id, '_hsgcm_coupon', true ),
-				'price'  => get_post_meta( $id, '_hsgcm_price', true ),
-				'start'  => get_post_meta( $id, '_hsgcm_start_date', true ),
-				'end'    => get_post_meta( $id, '_hsgcm_end_date', true ),
-			)
-		);
+		wp_send_json_success( $data );
 
 	}
 
@@ -113,13 +103,17 @@ final class AjaxController {
 
 		$result = $this->service->save(
 			array(
-				'id'     => absint( $_POST['id'] ?? 0 ),
-				'title'  => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ),
-				'status' => sanitize_text_field( wp_unslash( $_POST['status'] ?? 'draft' ) ),
-				'coupon' => sanitize_text_field( wp_unslash( $_POST['coupon'] ?? '' ) ),
-				'price'  => wp_unslash( $_POST['price'] ?? '' ),
-				'start'  => sanitize_text_field( wp_unslash( $_POST['start'] ?? '' ) ),
-				'end'    => sanitize_text_field( wp_unslash( $_POST['end'] ?? '' ) ),
+				'id'       => absint( $_POST['id'] ?? 0 ),
+				'title'    => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ),
+				'status'   => sanitize_text_field( wp_unslash( $_POST['status'] ?? 'draft' ) ),
+				'coupon'   => sanitize_text_field( wp_unslash( $_POST['coupon'] ?? '' ) ),
+				'price'    => wp_unslash( $_POST['price'] ?? '' ),
+				'start'    => sanitize_text_field( wp_unslash( $_POST['start'] ?? '' ) ),
+				'end'      => sanitize_text_field( wp_unslash( $_POST['end'] ?? '' ) ),
+				'products' => array_map(
+					'absint',
+					(array) ( $_POST['products'] ?? array() )
+				),
 			)
 		);
 
