@@ -12,12 +12,19 @@ defined( 'ABSPATH' ) || exit;
 final class CampaignRepository {
 
 	/**
-	 * Campaign post type.
+	 * Post type.
 	 */
 	private const POST_TYPE = 'hsg_campaign';
 
 	/**
+	 * Meta key.
+	 */
+	private const META_KEY = '_hsgcm_campaign';
+
+	/**
 	 * Get all campaigns.
+	 *
+	 * @return array
 	 */
 	public function all(): array {
 
@@ -26,7 +33,7 @@ final class CampaignRepository {
 				'post_type'      => self::POST_TYPE,
 				'post_status'    => array( 'publish', 'draft' ),
 				'posts_per_page' => -1,
-				'orderby'        => 'title',
+				'orderby'        => 'menu_order',
 				'order'          => 'ASC',
 			)
 		);
@@ -35,8 +42,12 @@ final class CampaignRepository {
 
 	/**
 	 * Find campaign.
+	 *
+	 * @param int $id Campaign ID.
+	 *
+	 * @return array|null
 	 */
-	public function find( int $id ): ?\WP_Post {
+	public function find( int $id ): ?array {
 
 		$post = get_post( $id );
 
@@ -44,31 +55,40 @@ final class CampaignRepository {
 			return null;
 		}
 
-		return $post;
+		$data = get_post_meta(
+			$id,
+			self::META_KEY,
+			true
+		);
 
-	}
+		if ( ! is_array( $data ) ) {
+			$data = array();
+		}
 
-	/**
-	 * Count campaigns.
-	 */
-	public function count(): int {
+		$data = CampaignSchema::normalize( $data );
 
-		$count = wp_count_posts( self::POST_TYPE );
+		$data['id'] = $id;
 
-		return (int) ( $count->publish ?? 0 );
+		return $data;
 
 	}
 
 	/**
 	 * Create campaign.
+	 *
+	 * @param array $campaign Campaign.
+	 *
+	 * @return int|\WP_Error
 	 */
-	public function create( array $data ) {
+	public function create( array $campaign ) {
+
+		$campaign = CampaignSchema::normalize( $campaign );
 
 		$post_id = wp_insert_post(
 			array(
 				'post_type'   => self::POST_TYPE,
-				'post_title'  => $data['title'],
-				'post_status' => $data['status'],
+				'post_title'  => $campaign['general']['title'],
+				'post_status' => $campaign['general']['status'],
 			),
 			true
 		);
@@ -77,7 +97,11 @@ final class CampaignRepository {
 			return $post_id;
 		}
 
-		$this->save_meta( $post_id, $data );
+		update_post_meta(
+			$post_id,
+			self::META_KEY,
+			$campaign
+		);
 
 		return (int) $post_id;
 
@@ -85,14 +109,26 @@ final class CampaignRepository {
 
 	/**
 	 * Update campaign.
+	 *
+	 * @param int   $id Campaign ID.
+	 * @param array $campaign Campaign.
+	 *
+	 * @return bool
 	 */
-	public function update( int $id, array $data ): bool {
+	public function update(
+		int $id,
+		array $campaign
+	): bool {
+
+		$campaign = CampaignSchema::normalize(
+			$campaign
+		);
 
 		$result = wp_update_post(
 			array(
 				'ID'          => $id,
-				'post_title'  => $data['title'],
-				'post_status' => $data['status'],
+				'post_title'  => $campaign['general']['title'],
+				'post_status' => $campaign['general']['status'],
 			),
 			true
 		);
@@ -101,7 +137,11 @@ final class CampaignRepository {
 			return false;
 		}
 
-		$this->save_meta( $id, $data );
+		update_post_meta(
+			$id,
+			self::META_KEY,
+			$campaign
+		);
 
 		return true;
 
@@ -109,103 +149,63 @@ final class CampaignRepository {
 
 	/**
 	 * Delete campaign.
+	 *
+	 * @param int $id Campaign ID.
+	 *
+	 * @return bool
 	 */
-	public function delete( int $id ): bool {
+	public function delete(
+		int $id
+	): bool {
 
-		return false !== wp_delete_post( $id, true );
+		return false !== wp_delete_post(
+			$id,
+			true
+		);
 
 	}
 
 	/**
 	 * Duplicate campaign.
+	 *
+	 * @param int $id Campaign ID.
+	 *
+	 * @return int|false
 	 */
-	public function duplicate( int $id ) {
+	public function duplicate(
+		int $id
+	) {
 
-		$post = $this->find( $id );
+		$campaign = $this->find(
+			$id
+		);
 
-		if ( ! $post ) {
+		if ( ! $campaign ) {
 			return false;
 		}
 
-		$data = $this->get_campaign_data( $id );
+		$campaign['general']['title'] .= ' (Copy)';
+		$campaign['general']['status'] = 'draft';
 
-		$data['title']  = $post->post_title . ' (Copy)';
-		$data['status'] = 'draft';
-
-		return $this->create( $data );
-
-	}
-
-	/**
-	 * Return campaign as array.
-	 */
-	public function get_campaign_data( int $id ): array {
-
-		$post = $this->find( $id );
-
-		if ( ! $post ) {
-			return array();
-		}
-
-		return array(
-			'id'       => $post->ID,
-			'title'    => $post->post_title,
-			'status'   => $post->post_status,
-			'coupon'   => get_post_meta( $id, '_hsgcm_coupon', true ),
-			'price'    => get_post_meta( $id, '_hsgcm_price', true ),
-			'start'    => get_post_meta( $id, '_hsgcm_start_date', true ),
-			'end'      => get_post_meta( $id, '_hsgcm_end_date', true ),
-			'products' => (array) get_post_meta(
-				$id,
-				'_hsgcm_products',
-				true
-			),
+		return $this->create(
+			$campaign
 		);
 
 	}
 
 	/**
-	 * Save campaign meta.
+	 * Count campaigns.
+	 *
+	 * @return int
 	 */
-	private function save_meta( int $post_id, array $data ): void {
+	public function count(): int {
 
-		update_post_meta(
-			$post_id,
-			'_hsgcm_coupon',
-			sanitize_text_field( $data['coupon'] ?? '' )
+		$count = wp_count_posts(
+			self::POST_TYPE
 		);
 
-		update_post_meta(
-			$post_id,
-			'_hsgcm_price',
-			wc_format_decimal( $data['price'] ?? '' )
-		);
-
-		update_post_meta(
-			$post_id,
-			'_hsgcm_start_date',
-			sanitize_text_field( $data['start'] ?? '' )
-		);
-
-		update_post_meta(
-			$post_id,
-			'_hsgcm_end_date',
-			sanitize_text_field( $data['end'] ?? '' )
-		);
-
-		/*
-		 * Products
-		 */
-
-		$products = array_map(
-			'absint',
-			(array) ( $data['products'] ?? array() )
-		);
-
-		update_post_meta(
-			$post_id,
-			'_hsgcm_products',
-			$products
+		return (int) (
+			$count->publish ?? 0
 		);
 
 	}
