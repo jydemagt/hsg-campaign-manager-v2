@@ -1,0 +1,218 @@
+/**
+ * HSG Campaign Manager
+ * Admin
+ */
+
+/* ==========================================================
+   Layout
+========================================================== */
+
+.hsgcm-content{
+	margin-top:20px;
+}
+
+.hsgcm-header{
+	display:flex;
+	justify-content:space-between;
+	align-items:center;
+	margin-bottom:25px;
+}
+
+.hsgcm-header h2{
+	margin:0;
+	font-size:28px;
+	font-weight:600;
+}
+
+.hsgcm-layout{
+	display:grid;
+	grid-template-columns:1fr 420px;
+	gap:30px;
+	align-items:start;
+}
+
+.hsgcm-left{
+	min-width:0;
+}
+
+.hsgcm-right{
+	position:sticky;
+	top:32px;
+}
+
+/* ==========================================================
+   Cards
+========================================================== */
+
+.hsgcm-campaign-grid{
+	display:grid;
+	grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+	gap:20px;
+}
+
+.hsgcm-campaign-card{
+	background:#fff;
+	border:1px solid #dcdcde;
+	border-radius:10px;
+	padding:20px;
+	box-shadow:0 2px 5px rgba(0,0,0,.05);
+	transition:.2s;
+}
+
+.hsgcm-campaign-card:hover{
+	transform:translateY(-2px);
+	box-shadow:0 8px 20px rgba(0,0,0,.08);
+}
+
+.hsgcm-card-header{
+	display:flex;
+	justify-content:space-between;
+	align-items:flex-start;
+	margin-bottom:15px;
+}
+
+.hsgcm-card-header h3{
+	margin:0;
+	font-size:20px;
+}
+
+.hsgcm-card-body p{
+	margin:0 0 15px;
+	line-height:1.5;
+}
+
+.hsgcm-card-footer{
+	display:flex;
+	gap:10px;
+	padding-top:15px;
+	border-top:1px solid #eee;
+	flex-wrap:wrap;
+}
+
+/* ==========================================================
+   Form
+========================================================== */
+
+.hsgcm-form{
+	background:#fff;
+	border:1px solid #dcdcde;
+	border-radius:10px;
+	padding:25px;
+	box-shadow:0 2px 5px rgba(0,0,0,.05);
+}
+
+.hsgcm-form h2{
+	margin-top:0;
+	margin-bottom:25px;
+}
+
+.hsgcm-field{
+	margin-bottom:18px;
+}
+
+.hsgcm-field label{
+	display:block;
+	font-weight:600;
+	margin-bottom:8px;
+}
+
+.hsgcm-field input,
+.hsgcm-field select,
+.hsgcm-field textarea{
+	width:100%;
+	max-width:100%;
+}
+
+.hsgcm-form hr{
+	margin:30px 0;
+	border:none;
+	border-top:1px solid #e2e2e2;
+}
+
+.hsgcm-form h3{
+	margin-top:0;
+}
+
+.hsgcm-form .description{
+	color:#777;
+	font-style:italic;
+}
+
+.hsgcm-form .submit{
+	margin-top:25px;
+	display:flex;
+	gap:10px;
+}
+
+/* ==========================================================
+   Empty State
+========================================================== */
+
+.hsgcm-empty{
+	background:#fff;
+	border:2px dashed #ccd0d4;
+	border-radius:10px;
+	padding:70px;
+	text-align:center;
+}
+
+.hsgcm-empty h2{
+	margin-top:0;
+}
+
+/* ==========================================================
+   Responsive
+========================================================== */
+
+@media screen and (max-width:1200px){
+
+	.hsgcm-layout{
+
+		grid-template-columns:1fr;
+
+	}
+
+	.hsgcm-right{
+
+		position:relative;
+		top:auto;
+
+	}
+
+}
+
+@media screen and (max-width:782px){
+
+	.hsgcm-header{
+
+		flex-direction:column;
+		align-items:flex-start;
+		gap:15px;
+
+	}
+
+	.hsgcm-card-footer{
+
+		flex-direction:column;
+
+	}
+
+	.hsgcm-card-footer .button{
+
+		width:100%;
+
+	}
+
+	.hsgcm-form .submit{
+
+		flex-direction:column;
+
+	}
+
+	.hsgcm-form .submit .button{
+
+		width:100%;
+
+	}
+
+}
