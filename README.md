@@ -1,0 +1,1 @@
+# hsg-campaign-manager-v2
