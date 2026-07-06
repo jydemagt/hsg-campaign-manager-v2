@@ -8,6 +8,7 @@
 namespace HSGCM\Admin;
 
 use HSGCM\Campaign\CampaignRepository;
+use HSGCM\Campaign\CampaignSchema;
 use HSGCM\Campaign\CampaignService;
 
 defined( 'ABSPATH' ) || exit;
@@ -76,9 +77,9 @@ final class AjaxController {
 
 		$id = absint( $_POST['id'] ?? 0 );
 
-		$data = $this->repository->get_campaign_data( $id );
+		$campaign = $this->repository->find( $id );
 
-		if ( empty( $data ) ) {
+		if ( null === $campaign ) {
 
 			wp_send_json_error(
 				array(
@@ -88,7 +89,11 @@ final class AjaxController {
 
 		}
 
-		wp_send_json_success( $data );
+		wp_send_json_success(
+			array(
+				'campaign' => $campaign,
+			)
+		);
 
 	}
 
@@ -101,21 +106,15 @@ final class AjaxController {
 
 		$this->verify();
 
-		$result = $this->service->save(
-			array(
-				'id'       => absint( $_POST['id'] ?? 0 ),
-				'title'    => sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) ),
-				'status'   => sanitize_text_field( wp_unslash( $_POST['status'] ?? 'draft' ) ),
-				'coupon'   => sanitize_text_field( wp_unslash( $_POST['coupon'] ?? '' ) ),
-				'price'    => wp_unslash( $_POST['price'] ?? '' ),
-				'start'    => sanitize_text_field( wp_unslash( $_POST['start'] ?? '' ) ),
-				'end'      => sanitize_text_field( wp_unslash( $_POST['end'] ?? '' ) ),
-				'products' => array_map(
-					'absint',
-					(array) ( $_POST['products'] ?? array() )
-				),
-			)
-		);
+		$campaign = $_POST['campaign'] ?? array();
+
+		if ( ! is_array( $campaign ) ) {
+			$campaign = array();
+		}
+
+		$campaign = CampaignSchema::normalize( wp_unslash( $campaign ) );
+
+		$result = $this->service->save( $campaign );
 
 		if ( ! $result['success'] ) {
 			wp_send_json_error( $result );
