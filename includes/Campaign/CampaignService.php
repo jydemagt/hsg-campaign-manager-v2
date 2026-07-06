@@ -30,23 +30,25 @@ final class CampaignService {
 	/**
 	 * Save campaign.
 	 *
-	 * @param array $data Campaign data.
+	 * @param array $campaign Campaign data.
 	 *
 	 * @return array
 	 */
-	public function save( array $data ): array {
+	public function save( array $campaign ): array {
 
-		$data = $this->sanitize( $data );
+		$campaign = CampaignSchema::normalize( $campaign );
 
-		$validation = $this->validate( $data );
+		$validation = $this->validate( $campaign );
 
 		if ( ! $validation['success'] ) {
 			return $validation;
 		}
 
-		if ( ! empty( $data['id'] ) ) {
+		$id = absint( $campaign['id'] ?? 0 );
 
-			if ( ! $this->repository->update( (int) $data['id'], $data ) ) {
+		if ( $id > 0 ) {
+
+			if ( ! $this->repository->update( $id, $campaign ) ) {
 
 				return array(
 					'success' => false,
@@ -57,13 +59,13 @@ final class CampaignService {
 
 			return array(
 				'success' => true,
-				'id'      => (int) $data['id'],
+				'id'      => $id,
 				'message' => __( 'Campaign updated.', 'hsg-campaign-manager' ),
 			);
 
 		}
 
-		$new_id = $this->repository->create( $data );
+		$new_id = $this->repository->create( $campaign );
 
 		if ( is_wp_error( $new_id ) ) {
 
@@ -118,7 +120,7 @@ final class CampaignService {
 
 		$new_id = $this->repository->duplicate( $id );
 
-		if ( ! $new_id || is_wp_error( $new_id ) ) {
+		if ( ! $new_id ) {
 
 			return array(
 				'success' => false,
@@ -136,52 +138,15 @@ final class CampaignService {
 	}
 
 	/**
-	 * Sanitize campaign data.
-	 *
-	 * @param array $data Raw data.
-	 *
-	 * @return array
-	 */
-	private function sanitize( array $data ): array {
-
-		$products = array_map(
-			'absint',
-			(array) ( $data['products'] ?? array() )
-		);
-
-		$products = array_values(
-			array_unique(
-				array_filter( $products )
-			)
-		);
-
-		return array(
-			'id'       => absint( $data['id'] ?? 0 ),
-			'title'    => sanitize_text_field( $data['title'] ?? '' ),
-			'status'   => in_array(
-				$data['status'] ?? 'draft',
-				array( 'draft', 'publish' ),
-				true
-			) ? $data['status'] : 'draft',
-			'coupon'   => sanitize_text_field( $data['coupon'] ?? '' ),
-			'price'    => wc_format_decimal( $data['price'] ?? '' ),
-			'start'    => sanitize_text_field( $data['start'] ?? '' ),
-			'end'      => sanitize_text_field( $data['end'] ?? '' ),
-			'products' => $products,
-		);
-
-	}
-
-	/**
 	 * Validate campaign.
 	 *
-	 * @param array $data Campaign data.
+	 * @param array $campaign Campaign.
 	 *
 	 * @return array
 	 */
-	private function validate( array $data ): array {
+	private function validate( array $campaign ): array {
 
-		if ( '' === trim( $data['title'] ) ) {
+		if ( empty( $campaign['general']['title'] ) ) {
 
 			return array(
 				'success' => false,
@@ -190,10 +155,13 @@ final class CampaignService {
 
 		}
 
+		$start = $campaign['general']['start_date'];
+		$end   = $campaign['general']['end_date'];
+
 		if (
-			'' !== $data['start'] &&
-			'' !== $data['end'] &&
-			strtotime( $data['start'] ) > strtotime( $data['end'] )
+			! empty( $start ) &&
+			! empty( $end ) &&
+			strtotime( $start ) > strtotime( $end )
 		) {
 
 			return array(
@@ -203,15 +171,14 @@ final class CampaignService {
 
 		}
 
-		foreach ( $data['products'] as $product_id ) {
+		foreach ( $campaign['conditions']['products'] as $product_id ) {
 
 			if ( 'product' !== get_post_type( $product_id ) ) {
 
 				return array(
 					'success' => false,
 					'message' => sprintf(
-						/* translators: %d Product ID */
-						__( 'Product ID %d is invalid.', 'hsg-campaign-manager' ),
+						__( 'Invalid product ID: %d', 'hsg-campaign-manager' ),
 						$product_id
 					),
 				);
