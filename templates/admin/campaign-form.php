@@ -29,17 +29,19 @@ $end = $campaign
 	? get_post_meta( $campaign->ID, '_hsgcm_end_date', true )
 	: '';
 
+$products = $campaign
+	? (array) get_post_meta( $campaign->ID, '_hsgcm_products', true )
+	: array();
+
+$product_selector = new \HSGCM\Admin\ProductSelector();
+
 ?>
 
 <div class="hsgcm-form">
 
 	<h2 id="hsgcm-form-title">
 
-		<?php
-		echo $id > 0
-			? esc_html__( 'Edit Campaign', 'hsg-campaign-manager' )
-			: esc_html__( 'New Campaign', 'hsg-campaign-manager' );
-		?>
+		<?php echo $id ? esc_html__( 'Edit Campaign', 'hsg-campaign-manager' ) : esc_html__( 'New Campaign', 'hsg-campaign-manager' ); ?>
 
 	</h2>
 
@@ -50,8 +52,6 @@ $end = $campaign
 			id="hsgcm-id"
 			name="id"
 			value="<?php echo esc_attr( $id ); ?>">
-
-		<?php wp_nonce_field( 'hsgcm_admin', 'hsgcm_nonce' ); ?>
 
 		<div class="hsgcm-field">
 
@@ -66,8 +66,8 @@ $end = $campaign
 				id="hsgcm-title"
 				name="title"
 				class="regular-text"
-				value="<?php echo esc_attr( $title ); ?>"
-				required>
+				required
+				value="<?php echo esc_attr( $title ); ?>">
 
 		</div>
 
@@ -83,41 +83,35 @@ $end = $campaign
 				id="hsgcm-status"
 				name="status">
 
-				<option
-					value="draft"
-					<?php selected( $status, 'draft' ); ?>>
-
+				<option value="draft" <?php selected( $status, 'draft' ); ?>>
 					<?php esc_html_e( 'Draft', 'hsg-campaign-manager' ); ?>
-
 				</option>
 
-				<option
-					value="publish"
-					<?php selected( $status, 'publish' ); ?>>
-
+				<option value="publish" <?php selected( $status, 'publish' ); ?>>
 					<?php esc_html_e( 'Active', 'hsg-campaign-manager' ); ?>
-
 				</option>
 
 			</select>
 
 		</div>
 
-		<div class="hsgcm-field">
+		<hr>
 
-			<label for="hsgcm-coupon">
+		<h3>
 
-				<?php esc_html_e( 'Coupon', 'hsg-campaign-manager' ); ?>
+			<?php esc_html_e( 'Products', 'hsg-campaign-manager' ); ?>
 
-			</label>
+		</h3>
 
-			<input
-				type="text"
-				id="hsgcm-coupon"
-				name="coupon"
-				value="<?php echo esc_attr( $coupon ); ?>">
+		<?php $product_selector->render( $products ); ?>
 
-		</div>
+		<hr>
+
+		<h3>
+
+			<?php esc_html_e( 'Pricing', 'hsg-campaign-manager' ); ?>
+
+		</h3>
 
 		<div class="hsgcm-field">
 
@@ -135,6 +129,30 @@ $end = $campaign
 				value="<?php echo esc_attr( $price ); ?>">
 
 		</div>
+
+		<div class="hsgcm-field">
+
+			<label for="hsgcm-coupon">
+
+				<?php esc_html_e( 'Coupon Code', 'hsg-campaign-manager' ); ?>
+
+			</label>
+
+			<input
+				type="text"
+				id="hsgcm-coupon"
+				name="coupon"
+				value="<?php echo esc_attr( $coupon ); ?>">
+
+		</div>
+
+		<hr>
+
+		<h3>
+
+			<?php esc_html_e( 'Schedule', 'hsg-campaign-manager' ); ?>
+
+		</h3>
 
 		<div class="hsgcm-field">
 
@@ -168,40 +186,6 @@ $end = $campaign
 
 		</div>
 
-		<hr>
-
-		<h3>
-
-			<?php esc_html_e( 'Products', 'hsg-campaign-manager' ); ?>
-
-		</h3>
-
-		<p class="description">
-
-			<?php esc_html_e(
-				'Product selection will be added in the next sprint.',
-				'hsg-campaign-manager'
-			); ?>
-
-		</p>
-
-		<hr>
-
-		<h3>
-
-			<?php esc_html_e( 'Pricing Rules', 'hsg-campaign-manager' ); ?>
-
-		</h3>
-
-		<p class="description">
-
-			<?php esc_html_e(
-				'Pricing engine will be added in the next sprint.',
-				'hsg-campaign-manager'
-			); ?>
-
-		</p>
-
 		<p class="submit">
 
 			<button
@@ -209,10 +193,7 @@ $end = $campaign
 				class="button button-primary button-large"
 				id="hsgcm-save">
 
-				<?php esc_html_e(
-					'Save Campaign',
-					'hsg-campaign-manager'
-				); ?>
+				<?php esc_html_e( 'Save Campaign', 'hsg-campaign-manager' ); ?>
 
 			</button>
 
@@ -221,10 +202,7 @@ $end = $campaign
 				class="button"
 				id="hsgcm-reset">
 
-				<?php esc_html_e(
-					'New Campaign',
-					'hsg-campaign-manager'
-				); ?>
+				<?php esc_html_e( 'New Campaign', 'hsg-campaign-manager' ); ?>
 
 			</button>
 
